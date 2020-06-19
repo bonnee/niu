@@ -4,14 +4,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="niu-cloud-bonnee",
+    name="niu",
     version="0.0.1",
     author="Matteo Bonora",
     author_email="bonora.matteo@gmail.com",
     description="NIU cloud interface library",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/Bonnee/niu-cloud",
+    url="https://github.com/Bonnee/niu",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

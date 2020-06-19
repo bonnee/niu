@@ -18,7 +18,7 @@ class Session:
     password = ""
     lang = ""
     token = ""
-    vehicles = ""
+    vehicles = []
 
 
 SESSION = Session()
@@ -26,7 +26,7 @@ SESSION = Session()
 
 class NiuCloud:
 
-    def init(self, username, password, token="", lang="en-US"):
+    def __init__(self, username, password, token="", lang="en-US"):
         SESSION.username = username
         SESSION.password = password
         SESSION.token = token
@@ -38,13 +38,17 @@ class NiuCloud:
             return None
         else:
             if SESSION.token == "":
-                self.get_token()
+                self.get_new_token()
 
-            self.get_vehicles()
-
-        return SESSION.token
+            self.update_vehicles()
 
     def get_token(self):
+        return SESSION.token
+
+    def get_new_token(self):
+        if SESSION.username == "" or SESSION.password == "":
+            raise NiuAPIException("Can't find username or password")
+
         try:
             resp = requests.post(
                 NIU_LOGIN_URL + "/appv2/login",
@@ -71,40 +75,52 @@ class NiuCloud:
         SESSION.token = resp_json['data']['token']
 
     def check_access_token(self):
-        if SESSION.username == "" or SESSION.password == "":
-            raise NiuAPIException("Can't find username or password")
         if SESSION.token == "":
-            self.get_token()
+            self.get_new_token()
 
-    def get_vehicles(self):
+    def update_vehicles(self):
         self.check_access_token()
 
         vehicles = self._request(
             'GET',
-            NIU_API_URL + '/v5/scooter/list')['data']['items']
+            NIU_API_URL + '/v5/scooter/list'
+        )['data']['items']
 
         SESSION.vehicles = []
+
         for vehicle in vehicles:
+            veh = Vehicle()
+            veh.update(vehicle)
+
+            # Get general details
             resp = self._request(
                 'GET',
-                NIU_API_URL + '/v5/scooter/detail/{}'.format(vehicle['sn_id'])
+                NIU_API_URL + '/v5/scooter/detail/{}'.format(veh.get_serial())
             )
-            SESSION.vehicles.append(resp['data'])
+            veh.update(resp['data'])
 
+            # Get vehicle status
             resp = self._request(
                 'GET',
                 NIU_API_URL + '/v3/motor_data/index_info',
-                params={'sn': vehicle['sn_id']}
+                params={'sn': veh.get_serial()}
             )
+            veh.update(resp['data'])
 
-            SESSION.vehicles[len(SESSION.vehicles)-1].update(resp['data'])
+            # Get batteries status
+            resp = self._request(
+                'GET',
+                NIU_API_URL + '/v3/motor_data/battery_info',
+                params={'sn': veh.get_serial()}
+            )
+            veh.update(resp['data'])
 
-    def get_all_vehicles(self):
+    def get_vehicles(self):
         return SESSION.vehicles
 
     def get_vehicles_by_serial(self, serial):
         for vehicle in SESSION.vehicles:
-            if vehicle.sn_id == serial:
+            if vehicle.get_serial() == serial:
                 return vehicle
 
         return None
@@ -133,6 +149,68 @@ class NiuCloud:
                 "Error {}: {}".format(status, resp_json['desc']))
 
         return resp_json
+
+
+class Vehicle(dict):
+    def __init__(self, *arg, **kw):
+        super(Vehicle, self).__init__(*arg, **kw)
+
+    def get_serial(self):
+        return self['sn_id']
+
+    def get_model(self):
+        return self['scooter_type']
+
+    def get_name(self):
+        return self['scooter_name']
+
+    def get_soc(self, index=-1):
+
+        if index == 0:
+            return self['batteries']['compartmentA']['batteryCharging']
+
+        if index == 1 and self['is_double_battery']:
+            return self['batteries']['compartmentB']['batteryCharging']
+
+        if index == -1:
+            soc = 0
+
+            # Single-battery vehicles only have compartmentA
+            if not self['is_double_battery']:
+                return self['batteries']['compartmentA']['batteryCharging']
+
+            battery = [self['batteries']['compartmentA'],
+                       self['batteries']['compartmentB']]
+
+            soc += battery[0]['batteryCharging']
+            soc += battery[1]['batteryCharging']
+
+            return soc / 2
+
+        return None
+
+    def is_charging(self):
+        return self['isCharging'] == 1
+
+    def get_battery_temp(self, index=-1):
+        return [x['temperature'] for x in self._get_battery(index)]
+
+    def get_location(self):
+        return {
+            'lat': self['postion']['lat'],
+            'lon': self['postion']['lng'],
+            'timestamp': self['gpsTimestamp']
+        }
+
+    def _get_battery(self, index):
+        if index == 0:
+            return [self['batteries']['compartmentA']]
+
+        if index == 1 and self['is_double_battery']:
+            return [self['batteries']['compartmentB']]
+
+        if index == -1:
+            return [self['batteries']['compartmentA'], self['batteries']['compartmentB']]
 
 
 class NiuNetException(Exception):
