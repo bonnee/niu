@@ -5,12 +5,12 @@ from niu import NiuCloud
 niu = NiuCloud()
 
 token = ""
-if len(sys.argv) > 1:
-    token = sys.argv[1]
+if len(sys.argv) > 3:
+    token = sys.argv[3]
 
-t = niu.init("***REMOVED***", "rFgN4RSR7U84tzk", token, "it-IT")
+t = niu.init(sys.argv[1], sys.argv[2], token, "it-IT")
 
-print(niu.get_all_vehicles()[0]['sn_id'])
+print(niu.get_all_vehicles()[0]['batteries'])
 
 
 if token == "":

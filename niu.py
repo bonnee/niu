@@ -91,6 +91,14 @@ class NiuCloud:
             )
             SESSION.vehicles.append(resp['data'])
 
+            resp = self._request(
+                'GET',
+                NIU_API_URL + '/v3/motor_data/index_info',
+                params={'sn': vehicle['sn_id']}
+            )
+
+            SESSION.vehicles[len(SESSION.vehicles)-1].update(resp['data'])
+
     def get_all_vehicles(self):
         return SESSION.vehicles
 
@@ -101,10 +109,13 @@ class NiuCloud:
 
         return None
 
-    def _request(self, method, url, data=None):
+    def _request(self, method, url, data=None, params=None):
         try:
-            resp = requests.request(method=method, url=url,
-                                    headers={**HTTP_HEADER, 'token': SESSION.token})
+            resp = requests.request(
+                method=method, url=url,
+                data=data, params=params,
+                headers={**HTTP_HEADER, 'token': SESSION.token}
+            )
 
             resp.raise_for_status()
 
