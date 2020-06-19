@@ -17,7 +17,7 @@ for veh in vehicles:
     print("\tModel:\t\t{}".format(veh.get_model()))
     print("\tName:\t\t{}".format(veh.get_name()))
 
-    print("\tSoC:\t\t{} [{}, {}]".format(
+    print("\tSoC:\t\t{}% [{}%, {}%]".format(
         veh.get_soc(), veh.get_soc(0), veh.get_soc(1))
     )
     print("\tCharging:\t{}".format(veh.is_charging()))

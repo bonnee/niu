@@ -90,6 +90,8 @@ class NiuCloud:
 
         for vehicle in vehicles:
             veh = Vehicle()
+            SESSION.vehicles.append(veh)
+
             veh.update(vehicle)
 
             # Get general details
@@ -165,34 +167,24 @@ class Vehicle(dict):
         return self['scooter_name']
 
     def get_soc(self, index=-1):
+        bat = self._get_battery(index)
 
-        if index == 0:
-            return self['batteries']['compartmentA']['batteryCharging']
+        if len(bat) == 1:
+            return bat[0]['batteryCharging']
 
-        if index == 1 and self['is_double_battery']:
-            return self['batteries']['compartmentB']['batteryCharging']
+        soc = bat[0]['batteryCharging'] + bat[1]['batteryCharging']
 
-        if index == -1:
-            soc = 0
-
-            # Single-battery vehicles only have compartmentA
-            if not self['is_double_battery']:
-                return self['batteries']['compartmentA']['batteryCharging']
-
-            battery = [self['batteries']['compartmentA'],
-                       self['batteries']['compartmentB']]
-
-            soc += battery[0]['batteryCharging']
-            soc += battery[1]['batteryCharging']
-
-            return soc / 2
-
-        return None
+        return soc / 2
 
     def is_charging(self):
         return self['isCharging'] == 1
 
     def get_battery_temp(self, index=-1):
+        bat = self._get_battery(index)
+
+        if (len(bat) == 1):
+            return bat[0]['temperature']
+
         return [x['temperature'] for x in self._get_battery(index)]
 
     def get_location(self):
@@ -203,14 +195,18 @@ class Vehicle(dict):
         }
 
     def _get_battery(self, index):
+
         if index == 0:
             return [self['batteries']['compartmentA']]
 
-        if index == 1 and self['is_double_battery']:
-            return [self['batteries']['compartmentB']]
+        if self['is_double_battery']:
+            if index == 1:
+                return [self['batteries']['compartmentB']]
 
-        if index == -1:
-            return [self['batteries']['compartmentA'], self['batteries']['compartmentB']]
+            if index == -1:
+                return [self['batteries']['compartmentA'], self['batteries']['compartmentB']]
+
+        return None
 
 
 class NiuNetException(Exception):
