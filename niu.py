@@ -7,7 +7,7 @@ NIU_LOGIN_URL = "https://account-fk.niu.com"
 NIU_API_URL = "https://app-api-fk.niu.com"
 
 HTTP_HEADER = {
-    'User-Agent': 'manager/4.1.0 (android; ONEPLUS A6013 9);lang=it-IT;clientIdentifier=Overseas;timezone=Europe/Rome;brand=OnePlus;model=ONEPLUS A6013;osVersion=9;pixels=1080x2261',
+    'User-Agent': 'manager/4.1.0 (android; NoPhone 1 9);lang=it-IT;clientIdentifier=Overseas;timezone=Europe/Rome;brand=NoPhone 1;model=NoPhone 1;osVersion=9;pixels=1080x1920',
     # 'User-Agent': 'lang={};clientIdentifier=Overseas',
     'Content-Type': 'application/x-www-form-urlencoded'
 }
