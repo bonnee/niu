@@ -34,13 +34,14 @@ class NiuCloud:
 
         HTTP_HEADER['User-Agent'] = HTTP_HEADER['User-Agent'].format(lang)
 
-        if username is None or password is None:
-            return None
-        else:
-            if SESSION.token == "":
-                self.get_new_token()
+    def connect(self):
+        if SESSION.token == "":
+            if SESSION.username is None or SESSION.password is None:
+                return None
 
-            self.update_vehicles()
+            self.get_new_token()
+
+        self.update_vehicles()
 
     def get_token(self):
         return SESSION.token

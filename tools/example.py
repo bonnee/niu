@@ -9,6 +9,7 @@ if len(sys.argv) > 3:
 
 niu = NiuCloud(sys.argv[1], sys.argv[2], token, "it-IT")
 
+niu.connect()
 vehicles = niu.get_vehicles()
 
 print("Found {} vehicles:".format(len(vehicles)))
