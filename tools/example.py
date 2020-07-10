@@ -7,7 +7,10 @@ token = ""
 if len(sys.argv) > 3:
     token = sys.argv[3]
 
-niu = NiuCloud(sys.argv[1], sys.argv[2], token, "it-IT")
+usr = sys.argv[1]
+pwd = sys.argv[2]
+
+niu = NiuCloud(token=token, lang="it-IT")
 
 niu.connect()
 vehicles = niu.get_vehicles()

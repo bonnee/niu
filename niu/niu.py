@@ -26,7 +26,7 @@ SESSION = Session()
 
 class NiuCloud:
 
-    def __init__(self, username, password, token="", lang="en-US"):
+    def __init__(self, username=None, password=None, token=None, lang="en-US"):
         SESSION.username = username
         SESSION.password = password
         SESSION.token = token
@@ -35,7 +35,7 @@ class NiuCloud:
         HTTP_HEADER['User-Agent'] = HTTP_HEADER['User-Agent'].format(lang)
 
     def connect(self):
-        if SESSION.token == "":
+        if SESSION.token == None:
             if SESSION.username is None or SESSION.password is None:
                 return None
 
