@@ -1,5 +1,6 @@
 import json
 import requests
+import datetime
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import HTTPError as RequestsHTTPError
 
@@ -104,11 +105,20 @@ class NiuCloud:
             )
             veh.update(resp["data"])
 
-            # Get batteries status
+            # Get battery status
             resp = self._request(
                 "GET",
                 NIU_API_URL + "/v3/motor_data/battery_info",
                 params={"sn": veh.get_serial()},
+            )
+            veh.update(resp["data"])
+
+            # Get odometer
+            resp = self._request(
+                "POST",
+                NIU_API_URL + "/motoinfo/overallTally",
+                params={"sn": veh.get_serial()},
+                data={"sn": veh.get_serial(), "token": SESSION.token},
             )
             veh.update(resp["data"])
 
@@ -156,11 +166,20 @@ class Vehicle(dict):
     def get_serial(self):
         return self["sn_id"]
 
+    def get_firmware(self):
+        return self["soft_version"]
+
     def get_model(self):
         return self["scooter_type"]
 
     def get_name(self):
         return self["scooter_name"]
+
+    def get_odometer(self):
+        return self["totalMileage"]
+
+    def get_range(self):
+        return self["mileage"]
 
     def get_soc(self, index=-1):
         bat = self._get_battery(index)
@@ -171,6 +190,16 @@ class Vehicle(dict):
         soc = bat[0]["batteryCharging"] + bat[1]["batteryCharging"]
 
         return soc / 2
+
+    def get_charging_left(self):
+        if self.is_charging():
+            left = float(self["leftTime"])
+            hours = int(left)
+            minutes = (left - hours) * 60
+
+            return datetime.timedelta(hours=hours, minutes=minutes)
+        else:
+            return datetime.timedelta(0)
 
     def is_charging(self):
         return self["isCharging"] == 1

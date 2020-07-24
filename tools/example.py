@@ -19,8 +19,11 @@ vehicles = niu.get_vehicles()
 print("Found {} vehicles:".format(len(vehicles)))
 for veh in vehicles:
     print("\tSerial:\t\t{}".format(veh.get_serial()))
+    print("\tFirmware:\t{}".format(veh.get_firmware()))
     print("\tModel:\t\t{}".format(veh.get_model()))
     print("\tName:\t\t{}".format(veh.get_name()))
+    print("\tOdometer:\t{} Km".format(veh.get_odometer()))
+    print("\tRange:\t\t{} Km".format(veh.get_range()))
 
     print(
         "\tSoC:\t\t{}% {}".format(
@@ -28,8 +31,8 @@ for veh in vehicles:
         )
     )
     print(f"\tConnected:\t{veh.is_connected()}")
-    print(f"\tOn:\t\t{veh.is_on()}")
-    print(f"\tCharging:\t{veh.is_charging()}")
+    print(f"\tPower:\t\t{veh.is_on()}")
+    print(f"\tCharging:\t{veh.is_charging()} ({veh.get_charging_left()} left)")
     print(f"\tLocked:\t\t{veh.is_locked()}")
 
     descs = veh.get_battery_temp_desc()
@@ -37,7 +40,7 @@ for veh in vehicles:
 
     print("\tTemps:\t\t", end="")
     for i, temp in enumerate(temps):
-        print(f"{temps[i]} ({descs[i]}), ", end="")
+        print(f"{temps[i]} °C ({descs[i]}), ", end="")
     print()  # newline
 
     print("\tLocation:\t{}".format(veh.get_location()))
