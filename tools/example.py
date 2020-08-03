@@ -13,7 +13,7 @@ pwd = sys.argv[2]
 
 niu = NiuCloud(token=token, lang="it-IT")
 
-niu.connect()
+token = niu.connect()
 vehicles = niu.get_vehicles()
 
 print("Found {} vehicles:".format(len(vehicles)))

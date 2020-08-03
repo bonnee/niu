@@ -41,7 +41,7 @@ class NiuCloud:
 
             self.get_new_token()
 
-        self.update_vehicles()
+        return self.get_token()
 
     def get_token(self):
         return SESSION.token
