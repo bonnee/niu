@@ -1,8 +1,8 @@
-import json
-import requests
+import asyncio
 import datetime
-from requests.exceptions import ConnectionError as RequestsConnectionError
-from requests.exceptions import HTTPError as RequestsHTTPError
+import json
+
+import aiohttp
 
 NIU_LOGIN_URL = "https://account-fk.niu.com"
 NIU_API_URL = "https://app-api-fk.niu.com"
@@ -33,36 +33,44 @@ class NiuCloud:
         SESSION.lang = lang
 
         HTTP_HEADER["User-Agent"] = HTTP_HEADER["User-Agent"].format(lang)
+        self.session = aiohttp.ClientSession()
 
-    def connect(self):
+    async def connect(self):
         if SESSION.token == None:
             if SESSION.username is None or SESSION.password is None:
                 return None
 
-            self.get_new_token()
+            await self.get_new_token()
 
         return self.get_token()
+
+    async def disconnect(self):
+        await self.session.close()
 
     def get_token(self):
         return SESSION.token
 
-    def get_new_token(self):
+    async def get_new_token(self):
         if SESSION.username == "" or SESSION.password == "":
             raise NiuAPIException("Can't find username or password")
 
-        try:
-            resp = requests.post(
+            resp = await self.session.post(
                 NIU_LOGIN_URL + "/appv2/login",
                 headers=HTTP_HEADER,
                 data={"account": SESSION.username, "password": SESSION.password},
             )
-            resp.raise_for_status()
 
-        except RequestsConnectionError as ex:
-            raise NiuNetException from ex
-        except RequestsHTTPError as ex:
-            if resp.status_code >= 500:
-                raise NiuServerException from ex
+        # resp = requests.post(
+        #     NIU_LOGIN_URL + "/appv2/login",
+        #     headers=HTTP_HEADER,
+        #     data={"account": SESSION.username,
+        #           "password": SESSION.password},
+        # )
+        # resp.raise_for_status()
+        if resp.status >= 500:
+            raise NiuServerException
+        elif resp.status >= 300:
+            raise NiuNetException
 
         resp_json = resp.json()
 
@@ -72,16 +80,22 @@ class NiuCloud:
 
         SESSION.token = resp_json["data"]["token"]
 
-    def check_access_token(self):
+    async def check_access_token(self):
         if SESSION.token == "":
-            self.get_new_token()
+            await self.get_new_token()
 
-    def update_vehicles(self):
-        self.check_access_token()
+    async def update_vehicles(self):
+        await self.check_access_token()
 
-        vehicles = self._request("GET", NIU_API_URL + "/v5/scooter/list")["data"][
-            "items"
-        ]
+        resp = await self.session.get(
+            NIU_API_URL + "/v5/scooter/list",
+            headers={**HTTP_HEADER, "token": SESSION.token},
+        )
+        vehicles = (await resp.json())["data"]["items"]
+
+        # vehicles = self._request("GET", NIU_API_URL + "/v5/scooter/list")["data"][
+        #    "items"
+        # ]
 
         SESSION.vehicles = []
 
@@ -92,35 +106,37 @@ class NiuCloud:
             veh.update(vehicle)
 
             # Get general details
-            resp = self._request(
-                "GET", NIU_API_URL + "/v5/scooter/detail/{}".format(veh.get_serial())
+            resp = await self.session.get(
+                NIU_API_URL + f"/v5/scooter/detail/{veh.get_serial()}",
+                headers={**HTTP_HEADER, "token": SESSION.token},
             )
-            veh.update(resp["data"])
+            veh.update((await resp.json())["data"])
 
             # Get vehicle status
-            resp = self._request(
-                "GET",
+            resp = await self.session.get(
                 NIU_API_URL + "/v3/motor_data/index_info",
+                headers={**HTTP_HEADER, "token": SESSION.token},
                 params={"sn": veh.get_serial()},
             )
-            veh.update(resp["data"])
+            veh.update((await resp.json())["data"])
 
             # Get battery status
-            resp = self._request(
-                "GET",
+            resp = await self.session.get(
                 NIU_API_URL + "/v3/motor_data/battery_info",
-                params={"sn": veh.get_serial()},
-            )
-            veh.update(resp["data"])
-
-            # Get odometer
-            resp = self._request(
-                "POST",
-                NIU_API_URL + "/motoinfo/overallTally",
+                headers={**HTTP_HEADER, "token": SESSION.token},
                 params={"sn": veh.get_serial()},
                 data={"sn": veh.get_serial(), "token": SESSION.token},
             )
-            veh.update(resp["data"])
+            veh.update((await resp.json())["data"])
+
+            # Get odometer
+            resp = await self.session.post(
+                NIU_API_URL + "/motoinfo/overallTally",
+                headers={**HTTP_HEADER, "token": SESSION.token},
+                params={"sn": veh.get_serial()},
+                data={"sn": veh.get_serial(), "token": SESSION.token},
+            )
+            veh.update((await resp.json())["data"])
 
     def get_vehicles(self):
         return SESSION.vehicles
@@ -132,31 +148,32 @@ class NiuCloud:
 
         return None
 
-    def _request(self, method, url, data=None, params=None):
-        try:
-            resp = requests.request(
-                method=method,
-                url=url,
-                data=data,
-                params=params,
-                headers={**HTTP_HEADER, "token": SESSION.token},
-            )
+    # def _request(self, method, url, data=None, params=None):
+    #    try:
+    #        resp = requests.request(
+    #            method=method,
+    #            url=url,
+    #            data=data,
+    #            params=params,
+    #            headers={**HTTP_HEADER, "token": SESSION.token},
+    #        )
 
-            resp.raise_for_status()
+    #        resp.raise_for_status()
 
-        except RequestsConnectionError as ex:
-            raise NiuNetException from ex
-        except RequestsHTTPError as ex:
-            if resp.status_code >= 500:
-                raise NiuServerException from ex
+    #    except RequestsConnectionError as ex:
+    #        raise NiuNetException from ex
+    #    except RequestsHTTPError as ex:
+    #        if resp.status_code >= 500:
+    #            raise NiuServerException from ex
 
-        resp_json = resp.json()
+    #    resp_json = resp.json()
 
-        status = resp_json.get("status")
-        if status != 0:
-            raise NiuAPIException("Error {}: {}".format(status, resp_json["desc"]))
+    #    status = resp_json.get("status")
+    #    if status != 0:
+    #        raise NiuAPIException(
+    #            "Error {}: {}".format(status, resp_json["desc"]))
 
-        return resp_json
+    #    return resp_json
 
 
 class Vehicle(dict):
