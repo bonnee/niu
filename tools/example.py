@@ -5,55 +5,54 @@ import asyncio
 from niu import NiuCloud
 
 
-async def do():
-    token = ""
-    if len(sys.argv) > 3:
-        token = sys.argv[3]
-
-    usr = sys.argv[1]
-    pwd = sys.argv[2]
-    niu = NiuCloud(token=token, lang="it-IT")
+async def do(usr, pwd, token):
+    niu = NiuCloud(username=usr, password=pwd, token=token, lang="it-IT")
     token = await niu.connect()
     await niu.update_vehicles()
     vehicles = niu.get_vehicles()
 
     print("Found {} vehicles:".format(len(vehicles)))
-    for veh in vehicles:
-        print("\tSerial:\t\t{}".format(veh.get_serial()))
-        print("\tFirmware:\t{}".format(veh.get_firmware()))
-        print("\tModel:\t\t{}".format(veh.get_model()))
-        print("\tName:\t\t{}".format(veh.get_name()))
-        print("\tOdometer:\t{} Km".format(veh.get_odometer()))
-        print("\tRange:\t\t{} Km".format(veh.get_range()))
+    for sn, veh in niu.get_vehicles().items():
+        print("\tSerial:\t\t{}".format(veh.serial_number))
+        print("\tFirmware:\t{}".format(veh.firmware_version))
+        print("\tModel:\t\t{}".format(veh.model))
+        print("\tName:\t\t{}".format(veh.name))
+        print("\tOdometer:\t{} Km".format(veh.odometer))
+        print("\tRange:\t\t{} Km".format(veh.range))
 
         print(
             "\tSoC:\t\t{}% {}".format(
-                veh.get_soc(),
-                [veh.get_soc(x) for x in range(0, veh.get_battery_count())],
+                veh.soc(),
+                [veh.soc(x) for x in range(0, veh.battery_count)],
             )
         )
-        print(f"\tConnected:\t{veh.is_connected()}")
-        print(f"\tPower:\t\t{veh.is_on()}")
-        print(f"\tCharging:\t{veh.is_charging()} ({veh.get_charging_left()} left)")
-        print(f"\tLocked:\t\t{veh.is_locked()}")
+        print(f"\tConnected:\t{veh.is_connected}")
+        print(f"\tPower:\t\t{veh.is_on}")
+        print(
+            f"\tCharging:\t{veh.is_charging} ({veh.charging_time_left} left)")
+        print(f"\tLocked:\t\t{veh.is_locked}")
 
-        descs = veh.get_battery_temp_desc()
-        temps = veh.get_battery_temp()
+        descs = veh.battery_temp_desc
+        temps = veh.battery_temp
 
         print("\tTemps:\t\t", end="")
         for i, temp in enumerate(temps):
             print(f"{temps[i]} °C ({descs[i]}), ", end="")
             print()  # newline
 
-        print("\tLocation:\t{}".format(veh.get_location()))
-        if token == "":
-            pass
-            print("\nConnection token:\t{}".format(t))
+        print("\tLocation:\t{}".format(veh.location))
 
-    await niu.disconnect()
+    print("\nConnection token:\t{}".format(token))
 
 
 if __name__ == "__main__":
+    token = ""
+    if len(sys.argv) > 3:
+        token = sys.argv[3]
+
+    usr = sys.argv[1]
+    pwd = sys.argv[2]
+
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(do())
+    loop.run_until_complete(do(usr, pwd, token))
     loop.close()
