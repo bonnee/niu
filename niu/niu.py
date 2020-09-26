@@ -51,11 +51,10 @@ class NiuCloud:
             NIU_LOGIN_URL + "/appv2/login",
             data={"account": SESSION.username, "password": SESSION.password},
         )
-
         SESSION.token = resp["data"]["token"]
 
     async def check_access_token(self):
-        if SESSION.token == "":
+        if not SESSION.token:
             await self.get_new_token()
 
     async def update_vehicles(self):
@@ -227,11 +226,9 @@ class Vehicle(dict):
     def battery_count(self):
         return 2 if self["is_double_battery"] == 1 else 1
 
-    @property
     def battery_temp(self, index=-1):
         return self._get_battery_param(index, "temperature")
 
-    @property
     def battery_temp_desc(self, index=-1):
         return self._get_battery_param(index, "temperatureDesc")
 

@@ -32,8 +32,8 @@ async def do(usr, pwd, token):
             f"\tCharging:\t{veh.is_charging} ({veh.charging_time_left} left)")
         print(f"\tLocked:\t\t{veh.is_locked}")
 
-        descs = veh.battery_temp_desc
-        temps = veh.battery_temp
+        descs = veh.battery_temp_desc()
+        temps = veh.battery_temp()
 
         print("\tTemps:\t\t", end="")
         for i, temp in enumerate(temps):
