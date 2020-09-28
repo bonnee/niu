@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="niu",
-    version="0.2.6",
+    version="0.2.7",
     author="Matteo Bonora",
     author_email="bonora.matteo@gmail.com",
     description="NIU cloud interface library",
